@@ -1,5 +1,5 @@
 import type { Auth } from '@/types/auth';
-import type { Team } from '@/types/teams';
+import type { SharedNotifications } from '@/types/ui';
 
 declare module 'react' {
     interface InputHTMLAttributes<T> {
@@ -12,9 +12,8 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            notificationsSummary: SharedNotifications | null;
             sidebarOpen: boolean;
-            currentTeam: Team | null;
-            teams: Team[];
             [key: string]: unknown;
         };
     }

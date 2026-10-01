@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'itb_sso' => [
+        'enabled' => env('ITB_SSO_ENABLED', false),
+    ],
+
 ];

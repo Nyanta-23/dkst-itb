@@ -8,16 +8,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
+import { formatRoleLabel } from '@/lib/roles';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 
 type Props = {
     user: User;
+    roles: string[];
 };
 
-export function UserMenuContent({ user }: Props) {
+export function UserMenuContent({ user, roles }: Props) {
     const cleanup = useMobileNavigation();
+    const roleLabel = formatRoleLabel(roles);
+    const subtitle = [user.unit?.name, roleLabel].filter(Boolean).join(' · ');
 
     const handleLogout = () => {
         cleanup();
@@ -28,8 +32,13 @@ export function UserMenuContent({ user }: Props) {
         <>
             <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <UserInfo user={user} showEmail={true} />
+                    <UserInfo user={user} />
                 </div>
+                {subtitle && (
+                    <div className="px-1 pb-1.5 text-xs text-muted-foreground">
+                        {subtitle}
+                    </div>
+                )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
@@ -41,7 +50,7 @@ export function UserMenuContent({ user }: Props) {
                         onClick={cleanup}
                     >
                         <Settings className="mr-2" />
-                        Settings
+                        Profil
                     </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>
@@ -55,7 +64,7 @@ export function UserMenuContent({ user }: Props) {
                     data-test="logout-button"
                 >
                     <LogOut className="mr-2" />
-                    Log out
+                    Keluar
                 </Link>
             </DropdownMenuItem>
         </>

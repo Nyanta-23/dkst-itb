@@ -2,9 +2,9 @@
 
 namespace App\Actions\Fortify;
 
-use App\Actions\Teams\CreateTeam;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -13,11 +13,6 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;
-
-    public function __construct(private CreateTeam $createTeam)
-    {
-        //
-    }
 
     /**
      * Validate and create a newly registered user.
@@ -36,9 +31,12 @@ class CreateNewUser implements CreatesNewUsers
                 'name' => $input['name'],
                 'email' => $input['email'],
                 'password' => $input['password'],
+                // Pendaftaran mandiri selalu untuk mitra/startup/pengguna eksternal;
+                // pegawai DKST dibuatkan akun oleh admin, bukan lewat form ini.
+                'unit_id' => Unit::where('code', 'EXT')->value('id'),
             ]);
 
-            $this->createTeam->handle($user, $user->name."'s Team", isPersonal: true);
+            $user->assignRole('eksternal');
 
             return $user;
         });
