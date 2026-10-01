@@ -1,7 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
-import TeamInvitationAlert from '@/components/team-invitation-alert';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,17 +8,15 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
-import type { TeamInvitationContext } from '@/types';
 
 type Props = {
     passwordRules: string;
-    teamInvitation?: TeamInvitationContext | null;
 };
 
-export default function Register({ passwordRules, teamInvitation }: Props) {
+export default function Register({ passwordRules }: Props) {
     return (
         <>
-            <Head title="Register" />
+            <Head title="Daftar" />
             <Form
                 {...store.form()}
                 resetOnSuccess={['password', 'password_confirmation']}
@@ -28,16 +25,15 @@ export default function Register({ passwordRules, teamInvitation }: Props) {
             >
                 {({ processing, errors }) => (
                     <>
-                        {teamInvitation && (
-                            <TeamInvitationAlert
-                                invitation={teamInvitation}
-                                action="Register"
-                            />
-                        )}
+                        <p className="rounded-md bg-muted px-4 py-3 text-sm text-muted-foreground">
+                            Pendaftaran untuk mitra, startup, dan pengguna
+                            eksternal. Pegawai DKST silakan hubungi admin untuk
+                            aktivasi akun.
+                        </p>
 
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                                <Label htmlFor="name">Nama lengkap</Label>
                                 <Input
                                     id="name"
                                     type="text"
@@ -46,7 +42,7 @@ export default function Register({ passwordRules, teamInvitation }: Props) {
                                     tabIndex={1}
                                     autoComplete="name"
                                     name="name"
-                                    placeholder="Full name"
+                                    placeholder="Nama lengkap"
                                 />
                                 <InputError
                                     message={errors.name}
@@ -55,7 +51,7 @@ export default function Register({ passwordRules, teamInvitation }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">Alamat email</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -63,20 +59,20 @@ export default function Register({ passwordRules, teamInvitation }: Props) {
                                     tabIndex={2}
                                     autoComplete="email"
                                     name="email"
-                                    placeholder="email@example.com"
+                                    placeholder="nama@email.com"
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">Kata sandi</Label>
                                 <PasswordInput
                                     id="password"
                                     required
                                     tabIndex={3}
                                     autoComplete="new-password"
                                     name="password"
-                                    placeholder="Password"
+                                    placeholder="Kata sandi"
                                     passwordrules={passwordRules}
                                 />
                                 <InputError message={errors.password} />
@@ -84,7 +80,7 @@ export default function Register({ passwordRules, teamInvitation }: Props) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password_confirmation">
-                                    Confirm password
+                                    Konfirmasi kata sandi
                                 </Label>
                                 <PasswordInput
                                     id="password_confirmation"
@@ -92,7 +88,7 @@ export default function Register({ passwordRules, teamInvitation }: Props) {
                                     tabIndex={4}
                                     autoComplete="new-password"
                                     name="password_confirmation"
-                                    placeholder="Confirm password"
+                                    placeholder="Konfirmasi kata sandi"
                                     passwordrules={passwordRules}
                                 />
                                 <InputError
@@ -107,27 +103,18 @@ export default function Register({ passwordRules, teamInvitation }: Props) {
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}
-                                Create account
+                                Buat akun
                             </Button>
                         </div>
 
                         <div className="text-center text-sm text-muted-foreground">
-                            Already have an account?{' '}
+                            Sudah punya akun?{' '}
                             <TextLink
-                                href={
-                                    teamInvitation
-                                        ? login.url({
-                                              query: {
-                                                  invitation:
-                                                      teamInvitation.code,
-                                              },
-                                          })
-                                        : login()
-                                }
-                                data-test="team-invitation-login-link"
+                                href={login()}
+                                data-test="login-link"
                                 tabIndex={6}
                             >
-                                Log in
+                                Masuk
                             </TextLink>
                         </div>
                     </>
@@ -138,6 +125,6 @@ export default function Register({ passwordRules, teamInvitation }: Props) {
 }
 
 Register.layout = {
-    title: 'Create an account',
-    description: 'Enter your details below to create your account',
+    title: 'Buat akun baru',
+    description: 'Lengkapi data di bawah untuk membuat akun Anda',
 };

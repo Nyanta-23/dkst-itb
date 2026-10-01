@@ -7,12 +7,16 @@ use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Responses\LoginResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Http\Responses\VerifyEmailResponse;
-use App\Models\TeamInvitation;
+use App\Models\User;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
@@ -38,6 +42,7 @@ class FortifyServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureActions();
+        $this->configureAuthentication();
         $this->configureViews();
         $this->configureRateLimiting();
     }
@@ -52,6 +57,41 @@ class FortifyServiceProvider extends ServiceProvider
     }
 
     /**
+     * Configure how Fortify authenticates users: reject a disabled (is_active = false)
+     * account with a specific message, then record the login timestamp.
+     */
+    private function configureAuthentication(): void
+    {
+        Fortify::authenticateUsing(function (Request $request) {
+            $username = $request->{Fortify::username()};
+
+            if (config('fortify.lowercase_usernames')) {
+                $username = Str::lower($username);
+            }
+
+            $user = User::where(Fortify::username(), $username)->first();
+
+            if (! $user || ! $user->password || ! Hash::check($request->password, $user->password)) {
+                return null;
+            }
+
+            if (! $user->is_active) {
+                throw ValidationException::withMessages([
+                    Fortify::username() => 'Akun Anda dinonaktifkan. Hubungi admin DKST.',
+                ]);
+            }
+
+            return $user;
+        });
+
+        Event::listen(function (Login $event) {
+            if ($event->user instanceof User) {
+                $event->user->forceFill(['last_login_at' => now()])->saveQuietly();
+            }
+        });
+    }
+
+    /**
      * Configure Fortify views.
      */
     private function configureViews(): void
@@ -59,7 +99,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'status' => $request->session()->get('status'),
-            'teamInvitation' => $this->teamInvitation($request),
+            'ssoEnabled' => config('services.itb_sso.enabled'),
         ]));
 
         Fortify::resetPasswordView(fn (Request $request) => Inertia::render('auth/reset-password', [
@@ -75,9 +115,7 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn (Request $request) => Inertia::render('auth/register', [
-            'teamInvitation' => $this->teamInvitation($request),
-        ]));
+        Fortify::registerView(fn () => Inertia::render('auth/register'));
 
         Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
     }
@@ -94,37 +132,5 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($throttleKey);
         });
 
-    }
-
-    /**
-     * Get the pending team invitation context for auth pages.
-     *
-     * @return array{code: string, teamName: string}|null
-     */
-    private function teamInvitation(Request $request): ?array
-    {
-        $invitationCode = $request->query('invitation');
-
-        if (! is_string($invitationCode)) {
-            return null;
-        }
-
-        $invitation = TeamInvitation::query()
-            ->with('team')
-            ->where('code', $invitationCode)
-            ->whereNull('accepted_at')
-            ->where(fn ($query) => $query
-                ->whereNull('expires_at')
-                ->orWhere('expires_at', '>=', now()))
-            ->first();
-
-        if (! $invitation) {
-            return null;
-        }
-
-        return [
-            'code' => $invitation->code,
-            'teamName' => $invitation->team->name,
-        ];
     }
 }

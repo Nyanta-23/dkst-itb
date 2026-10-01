@@ -41,11 +41,21 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $user,
+                'user' => $user?->loadMissing('unit'),
+                'roles' => fn () => $user?->getRoleNames() ?? [],
+                'permissions' => fn () => $user?->getAllPermissions()->pluck('name') ?? [],
             ],
+            'notificationsSummary' => fn () => $user ? [
+                'unreadCount' => $user->unreadNotifications()->count(),
+                'recent' => $user->notifications()->latest()->limit(10)->get()->map(fn ($notification) => [
+                    'id' => $notification->id,
+                    'type' => $notification->type,
+                    'data' => $notification->data,
+                    'read_at' => $notification->read_at?->toIso8601String(),
+                    'created_at' => $notification->created_at->toIso8601String(),
+                ]),
+            ] : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
-            'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],
         ];
     }
 }

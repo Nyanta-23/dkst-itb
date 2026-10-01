@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { Badge } from '@/components/ui/badge';
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -6,15 +7,21 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import type { NavigationItem } from '@/config/navigation';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import type { NavItem } from '@/types';
 
-export function NavMain({ items }: { items: NavItem[] }) {
+export function NavMain({
+    label,
+    items,
+}: {
+    label: string;
+    items: NavigationItem[];
+}) {
     const { isCurrentUrl } = useCurrentUrl();
 
     return (
         <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+            <SidebarGroupLabel>{label}</SidebarGroupLabel>
             <SidebarMenu>
                 {items.map((item) => (
                     <SidebarMenuItem key={item.title}>
@@ -24,8 +31,16 @@ export function NavMain({ items }: { items: NavItem[] }) {
                             tooltip={{ children: item.title }}
                         >
                             <Link href={item.href} prefetch>
-                                {item.icon && <item.icon />}
+                                <item.icon />
                                 <span>{item.title}</span>
+                                {item.status === 'soon' && (
+                                    <Badge
+                                        variant="secondary"
+                                        className="ml-auto group-data-[collapsible=icon]:hidden"
+                                    >
+                                        Segera
+                                    </Badge>
+                                )}
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

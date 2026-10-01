@@ -1,52 +1,151 @@
-import { Head } from '@inertiajs/react';
-import { useState } from 'react';
-import PendingInvitationsModal from '@/components/pending-invitations-modal';
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
-import { dashboard } from '@/routes';
-import type { DashboardInvitation } from '@/types';
+import { Head, usePage } from "@inertiajs/react";
+import {
+    Building2,
+    CalendarClock,
+    ClipboardList,
+    Handshake,
+    Lightbulb,
+    Mail,
+    Rocket,
+    ShieldCheck,
+    type LucideIcon,
+} from "lucide-react";
+import {
+    IkuProgressCard,
+    type IkuProgressItem,
+} from "@/components/dashboard/iku-progress-card";
+import {
+    MyBookingsCard,
+    type MyBookings,
+} from "@/components/dashboard/my-bookings-card";
+import {
+    MyTasksCard,
+    type MyTasks,
+} from "@/components/dashboard/my-tasks-card";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { formatIndonesianDate } from "@/lib/format";
+import { dashboard } from "@/routes";
+import ruangan from "@/routes/ruangan";
 
-type Props = {
-    pendingInvitations?: DashboardInvitation[];
+type Stats = {
+    programsOngoing?: number;
+    technologies?: number;
+    ipAssetsGranted?: number;
+    partners?: number;
+    tenantsActive?: number;
+    bookingsPending?: number;
+    lettersOpen?: number;
 };
 
-export default function Dashboard({ pendingInvitations = [] }: Props) {
-    const [showInvitations, setShowInvitations] = useState(
-        pendingInvitations.length > 0,
-    );
+type Props = {
+    stats: Stats;
+    ikuProgress: IkuProgressItem[] | null;
+    myTasks: MyTasks | null;
+    myBookings: MyBookings | null;
+    can: { approveBookings: boolean };
+};
+
+const STAT_CONFIG: Record<keyof Stats, { label: string; icon: LucideIcon }> = {
+    programsOngoing: { label: "Program Berjalan", icon: ClipboardList },
+    technologies: { label: "Teknologi", icon: Lightbulb },
+    ipAssetsGranted: { label: "KI Granted", icon: ShieldCheck },
+    partners: { label: "Mitra", icon: Handshake },
+    tenantsActive: { label: "Tenant Aktif", icon: Rocket },
+    bookingsPending: { label: "Booking Menunggu", icon: CalendarClock },
+    lettersOpen: { label: "Surat Belum Selesai", icon: Mail },
+};
+
+function getGreeting(): string {
+    const hour = new Date().getHours();
+
+    if (hour < 11) {
+        return "Selamat pagi";
+    }
+
+    if (hour < 15) {
+        return "Selamat siang";
+    }
+
+    if (hour < 19) {
+        return "Selamat sore";
+    }
+
+    return "Selamat malam";
+}
+
+export default function Dashboard({
+    stats,
+    ikuProgress,
+    myTasks,
+    myBookings,
+    can,
+}: Props) {
+    const { auth } = usePage().props;
+    const statEntries = Object.entries(stats) as [keyof Stats, number][];
 
     return (
         <>
             <Head title="Dashboard" />
-            <PendingInvitationsModal
-                invitations={pendingInvitations}
-                open={pendingInvitations.length > 0 && showInvitations}
-                onOpenChange={setShowInvitations}
-            />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
+            <div className="flex h-full flex-1 flex-col gap-6 p-4">
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-2xl font-semibold">
+                        {getGreeting()}, {auth.user.name.split(" ")[0]}
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        {auth.user.unit ? `${auth.user.unit.name} · ` : ""}
+                        {formatIndonesianDate()}
+                    </p>
                 </div>
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+
+                {statEntries.length > 0 && (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {statEntries.map(([key, value]) => {
+                            const config = STAT_CONFIG[key];
+                            const href =
+                                key === "bookingsPending" &&
+                                can.approveBookings
+                                    ? ruangan.approvals.index().url
+                                    : undefined;
+
+                            return (
+                                <StatCard
+                                    key={key}
+                                    label={config.label}
+                                    icon={config.icon}
+                                    value={value}
+                                    href={href}
+                                />
+                            );
+                        })}
+                    </div>
+                )}
+
+                {ikuProgress && ikuProgress.length > 0 && (
+                    <IkuProgressCard items={ikuProgress} />
+                )}
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                    {myTasks && <MyTasksCard tasks={myTasks} />}
+                    {myBookings && <MyBookingsCard data={myBookings} />}
                 </div>
+
+                {statEntries.length === 0 &&
+                    !ikuProgress &&
+                    !myTasks &&
+                    !myBookings && (
+                        <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                                <Building2 className="size-4" />
+                                Belum ada data yang bisa ditampilkan untuk akun
+                                ini.
+                            </div>
+                        </div>
+                    )}
             </div>
         </>
     );
 }
 
-Dashboard.layout = (props: { currentTeam?: { slug: string } | null }) => ({
-    breadcrumbs: [
-        {
-            title: 'Dashboard',
-            href: props.currentTeam ? dashboard(props.currentTeam.slug) : '/',
-        },
-    ],
+Dashboard.layout = () => ({
+    breadcrumbs: [{ title: "Dashboard", href: dashboard() }],
 });
